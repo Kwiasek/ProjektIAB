@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "build:css": "npx @tailwindcss/cli -i ./public/css/input.css -o ./public/css/output.css --watch",
+    "run": "php -S localhost:8000",
+  },
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.14",
+    "tailwindcss": "^4.1.14"
+  }
+}
