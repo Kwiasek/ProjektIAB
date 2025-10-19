@@ -12,11 +12,11 @@ function routeRequest($uri) {
             break;
 
         case '/register':
-            require_once __DIR__ . "/../views/register.php";
+            require_once __DIR__ . "/../views/auth/register.php";
             break;
 
         case '/logout':
-            require_once __DIR__ . "../src/controllers/UserController.php";
+            require_once __DIR__ . "/../src/controllers/UserController.php";
             $controller = new UserController();
             $controller->logout();
             break;
