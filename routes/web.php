@@ -4,6 +4,9 @@ function routeRequest($uri) {
     switch ($uri) {
         case '/':
         case '/home':
+            require_once __DIR__ . '/../src/controllers/FacilityController.php';
+            $facilitiesController = new FacilityController();
+            $facilities = $facilitiesController->getFacilities();
             require_once __DIR__ . "/../views/facilities/list.php";
             break;
 
@@ -22,6 +25,12 @@ function routeRequest($uri) {
             break;
 
         case '/facilities/add':
+            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+                require_once __DIR__ . "/../src/controllers/FacilityController.php";
+                $facilitiesController = new FacilityController();
+                $facilitiesController->addFacility($_POST);
+                break;
+            }
             require_once __DIR__ . '/../views/facilities/add.php';
             break;
 
