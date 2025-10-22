@@ -90,13 +90,14 @@ CREATE TABLE IF NOT EXISTS guest_requests (
       FOREIGN KEY (reservation_id) REFERENCES reservations(id)
 );
 
--- 🔹 Wstawienie przykładowych danych
-INSERT INTO users (login, name, password, role, created_at) VALUES
-('admin', 'Admin', '$2y$10$examplehashadmin', 'admin', NOW()),
-('owner1', 'Właściciel 1', '$2y$10$examplehashowner', 'owner', NOW()),
-('user1', 'Użytkownik 1', '$2y$10$examplehashuser', 'user', NOW());
-
-INSERT INTO facilities (name, description, location, price_per_hour, image_url, created_at) VALUES
-('Boisko Orlik', 'Boisko do piłki nożnej ze sztuczną murawą', 'Łódź, ul. Sportowa 12', 120.00, '/images/orlik.jpg', NOW()),
-('Kort Tenisowy Centrum', 'Profesjonalny kort z oświetleniem', 'Łódź, ul. Rakietowa 5', 90.00, '/images/tenis.jpg', NOW()),
-('Basen Miejski', 'Kryty basen z szatniami i sauną', 'Łódź, ul. Wodna 2', 60.00, '/images/basen.jpg', NOW());
+create table facility_availability (
+       id int auto_increment primary key,
+       facility_id int not null,
+       day_of_week enum('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday') not null,
+       open_time time not null,
+       close_time time not null,
+       is_open boolean default true,
+       created_at datetime default current_timestamp,
+       updated_at datetime default current_timestamp on update current_timestamp,
+       foreign key (facility_id) references facilities(id) on delete cascade
+);

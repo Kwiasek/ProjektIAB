@@ -41,6 +41,41 @@ ob_start();
         </div>
     </div>
 
+    <hr class="my-6 border-gray-300">
+
+    <h2 class="font-bold text-2xl mb-4">Godziny otwarcia</h2>
+    <p class="text-gray-500 mb-3">Dla każdego dnia określ godziny otwarcia i zamknięcia. Zaznacz, jeśli obiekt jest otwarty danego dnia.</p>
+
+    <div class="space-y-3">
+        <?php
+        $days = [
+                'monday' => 'Poniedziałek',
+                'tuesday' => 'Wtorek',
+                'wednesday' => 'Środa',
+                'thursday' => 'Czwartek',
+                'friday' => 'Piątek',
+                'saturday' => 'Sobota',
+                'sunday' => 'Niedziela'
+        ];
+        foreach ($days as $key => $label): ?>
+            <div class="grid grid-cols-4 items-center gap-3 bg-gray-100 rounded-lg mb-4 px-3">
+                <div class="font-medium"><?= $label ?></div>
+                <div>
+                    <label class="text-sm text-gray-600 block">Od</label>
+                    <input type="time" name="availability[<?= $key ?>][open]" class="py-2 px-3 rounded bg-white border border-gray-300 w-full" value="08:00">
+                </div>
+                <div>
+                    <label class="text-sm text-gray-600 block">Do</label>
+                    <input type="time" name="availability[<?= $key ?>][close]" class="py-2 px-3 rounded bg-white border border-gray-300 w-full" value="22:00">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="availability[<?= $key ?>][is_open]" id="open_<?= $key ?>" value="1" checked>
+                    <label for="open_<?= $key ?>" class="text-sm text-gray-600">Otwarte</label>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
     <?php if (!empty($_SESSION['error'])): ?>
         <p class="text-red-500 text-center mb-3"><?= $_SESSION['error'] ?></p>
         <?php unset($_SESSION['error']); ?>

@@ -31,16 +31,57 @@ class FacilityController {
             exit;
         }
 
+        $facilityId = $pdo->lastInsertId();
+
+        if (!empty($_POST['availability'])) {
+            $stmt = $pdo->prepare("INSERT INTO facility_availability (facility_id, day_of_week, open_time, close_time, is_open)
+                VALUES (?, ?, ?, ?, ?)");
+
+            foreach ($_POST['availability'] as $day => $data) {
+                $open = $data['open'] ?? "00:00";
+                $close = $data['close'] ?? "00:00";
+                $is_open = isset($data['is_open']) ? 1 : 0;
+                $stmt->execute([$facilityId, $day, $open, $close, $is_open]);
+            }
+        }
+
         header("location: /");
         exit;
     }
 
-    public function getFacilities() {
+    public function getAll() {
+        require_once __DIR__ . '/../models/Facility.php';
+        header('Content-Type: application/json');
+
+        $filters = [
+            'name' => $_GET['name'] ?? null,
+            'location' => $_GET['location'] ?? null,
+            'date' => $_GET['date'] ?? null,
+            'sort' => $_GET['sort'] ?? null,
+            'available_only' => isset($_GET['available_only'])
+        ];
+
+        try {
+            $facilityModel = new Facility();
+            $facilities = $facilityModel->getFiltered($filters);
+            echo json_encode([
+                "status" => "success",
+                "data" => $facilities
+            ]);
+
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "status" => "error",
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getFacilityById($facilityId) {
         global $pdo;
 
-        $stmt = $pdo->prepare("SELECT * FROM facilities");
-        $stmt->execute();
-        $result = $stmt->fetchAll();
-        return $result;
+        $stmt = $pdo->prepare("SELECT * FROM facilities WHERE facility_id = ?");
+        if (!$stmt->execute([$facilityId])) {}
     }
 }

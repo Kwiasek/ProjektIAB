@@ -2,5 +2,6 @@
 <project version="4">
   <component name="DataSourcePerFileMappings">
     <file url="file://$PROJECT_DIR$/src/controllers/FacilityController.php" value="83b82482-ab2b-462e-8676-2aa4aa87674d" />
+    <file url="file://$PROJECT_DIR$/src/models/Facility.php" value="83b82482-ab2b-462e-8676-2aa4aa87674d" />
   </component>
 </project>
