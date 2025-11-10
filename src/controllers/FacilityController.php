@@ -1,16 +1,22 @@
 <?php
 
 require_once __DIR__ . "/../config/db.php";
+require_once __DIR__ . "/../models/Facility.php";
 
 class FacilityController {
-    public function addFacility($data) {
-        global $pdo;
 
+    private $facility;
+
+    function __construct() {
+        $this->facility = new Facility();
+    }
+    public function addFacility($data) {
         $name = trim($data['name']);
         $description = trim($data['description']);
         $location = trim($data['location']);
         $image_url = trim($data['image_url']);
         $price = $data['price'];
+        $availability = $data['availability'];
 
         if (!$_SESSION['user']) {
             header("Location: /");
@@ -23,33 +29,13 @@ class FacilityController {
             exit;
         }
 
-        $stmt = $pdo->prepare("INSERT INTO facilities (owner_id, name, description, location, price_per_hour, image_url, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, NOW())");
-        if (!$stmt->execute([$_SESSION['user']['id'], $name, $description, $location, $price, $image_url])) {
-            $_SESSION['error'] = 'Błąd serwera';
-            header("location: /facilities/add");
-            exit;
-        }
-
-        $facilityId = $pdo->lastInsertId();
-
-        if (!empty($_POST['availability'])) {
-            $stmt = $pdo->prepare("INSERT INTO facility_availability (facility_id, day_of_week, open_time, close_time, is_open)
-                VALUES (?, ?, ?, ?, ?)");
-
-            foreach ($_POST['availability'] as $day => $data) {
-                $open = $data['open'] ?? "00:00";
-                $close = $data['close'] ?? "00:00";
-                $is_open = isset($data['is_open']) ? 1 : 0;
-                $stmt->execute([$facilityId, $day, $open, $close, $is_open]);
-            }
-        }
+        $this->facility->add($name, $description, $location, $image_url, $price, $availability);
 
         header("location: /");
         exit;
     }
 
-    public function getAll() {
+    public function getAllFiltered() {
         require_once __DIR__ . '/../models/Facility.php';
         header('Content-Type: application/json');
 
@@ -62,8 +48,7 @@ class FacilityController {
         ];
 
         try {
-            $facilityModel = new Facility();
-            $facilities = $facilityModel->getFiltered($filters);
+            $facilities = $this->facility->getFiltered($filters);
             echo json_encode([
                 "status" => "success",
                 "data" => $facilities
@@ -79,9 +64,38 @@ class FacilityController {
     }
 
     public function getFacilityById($facilityId) {
-        global $pdo;
 
-        $stmt = $pdo->prepare("SELECT * FROM facilities WHERE facility_id = ?");
-        if (!$stmt->execute([$facilityId])) {}
+        try {
+            $facility = $this->facility->getById($facilityId);
+            return json_encode([
+                "status" => "success",
+                "data" => $facility
+            ]);
+        }
+        catch (Exception $e) {
+            http_response_code(500);
+            return json_encode([
+                "status" => "error",
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getAvailabilityById($facilityId, $date) {
+        header('Content-Type: application/json');
+        try {
+            $availability = $this->facility->getAvailibility($facilityId, $date);
+            echo json_encode([
+                "status" => "success",
+                "data" => $availability
+            ]);
+        }
+        catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "status" => "error",
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 }
