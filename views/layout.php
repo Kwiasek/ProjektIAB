@@ -8,7 +8,7 @@
 </head>
 <body class="bg-gray-100 text-gray-800 antialiased scroll-smooth">
     <div id="loader-bar" class="fixed top-0 left-0 h-1 bg-blue-500 w-0 z-50 transition-all duration-300"></div>
-    <nav class="flex px-8 py-3 border-b border-b-blue-300 align-middle justify-between sticky top-0 bg-gray-100">
+    <nav class="flex px-8 py-3 border-b border-b-blue-300 align-middle justify-between sticky top-0 bg-gray-100 z-30">
         <a href="/" class="text-3xl font-bold text-blue-500">SportSpot</a>
         <div class="flex items-center gap-6 font-medium text-gray-600">
             <a href="/" class="hover:text-gray-800">Lista obiektów</a>

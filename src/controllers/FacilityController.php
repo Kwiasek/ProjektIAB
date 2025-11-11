@@ -5,7 +5,7 @@ require_once __DIR__ . "/../models/Facility.php";
 
 class FacilityController {
 
-    private $facility;
+    private Facility $facility;
 
     function __construct() {
         $this->facility = new Facility();
@@ -18,7 +18,7 @@ class FacilityController {
         $price = $data['price'];
         $availability = $data['availability'];
 
-        if (!$_SESSION['user']) {
+        if (!isset($_SESSION['user'])) {
             header("Location: /");
             exit;
         }
@@ -29,16 +29,18 @@ class FacilityController {
             exit;
         }
 
-        $this->facility->add($name, $description, $location, $image_url, $price, $availability);
-
-        header("location: /");
-        exit;
+        try {
+            $this->facility->createFacility($name, $description, $location, $image_url, $price, $availability);
+            header('Location: /');
+            exit;
+        } catch (Exception $e) {
+            $_SESSION['error'] = 'Błąd przy dodawaniu obiektu: ' . $e->getMessage();
+            header("location: /facilities/add");
+            exit;
+        }
     }
 
     public function getAllFiltered() {
-        require_once __DIR__ . '/../models/Facility.php';
-        header('Content-Type: application/json');
-
         $filters = [
             'name' => $_GET['name'] ?? null,
             'location' => $_GET['location'] ?? null,
@@ -64,9 +66,8 @@ class FacilityController {
     }
 
     public function getFacilityById($facilityId) {
-
         try {
-            $facility = $this->facility->getById($facilityId);
+            $facility = $this->facility->getFacility($facilityId);
             return json_encode([
                 "status" => "success",
                 "data" => $facility
@@ -81,16 +82,40 @@ class FacilityController {
         }
     }
 
-    public function getAvailabilityById($facilityId, $date) {
-        header('Content-Type: application/json');
+    /**
+     * Zwraca dostępność dla konkretnego dnia tygodnia bez uwzględniania rezerwacji.
+     */
+    public function getAvailabilityWithoutReservations($facilityId, $date) {
+        $dayOfWeek = strtolower(date('l', strtotime($date)));
+
         try {
-            $availability = $this->facility->getAvailibility($facilityId, $date);
+            $availability = $this->facility->getFacilityAvailability($facilityId, $dayOfWeek);
             echo json_encode([
                 "status" => "success",
                 "data" => $availability
             ]);
         }
         catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                "status" => "error",
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Zwraca dostępne godziny z uwzględnieniem rezerwacji.
+     */
+    public function getAvailibilityWithReservations($facilityId, $date): void
+    {
+        try {
+            $availability = $this->facility->getAvailabilityWithReservations($facilityId, $date);
+            echo json_encode([
+                "status" => "success",
+                "data" => $availability
+            ]);
+        } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([
                 "status" => "error",

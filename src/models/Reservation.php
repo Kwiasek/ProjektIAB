@@ -19,8 +19,7 @@ class Reservation {
         $facilityId = $data['facility_id'];
         $date = $data['date'];
         $start = (int) $data['start'];
-        $duration = (int) $data['duration'];
-        $end = $start + $duration;
+        $end = (int) $data['end'];
 
         $stmt = $pdo->prepare("
             SELECT count(*) FROM reservations 

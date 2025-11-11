@@ -28,11 +28,12 @@ function routeRequest($uri) {
             break;
 
         case '/api/facility/availability':
+            header('Content-type: application/json');
             $id = $_GET['id'];
             $date = $_GET['date'];
             require_once __DIR__ . "/../src/controllers/FacilityController.php";
             $controller = new FacilityController();
-            $controller->getAvailabilityById($id, $date);
+            $controller->getAvailibilityWithReservations($id, $date);
             break;
 
         case '/facility':
@@ -45,6 +46,7 @@ function routeRequest($uri) {
             $controller = new FacilityController();
 
             $facility = json_decode($controller->getFacilityById($id), true);
+
             if ($facility['status'] == 'success') {
                 require_once __DIR__ . "/../views/facilities/facility.php";
             } else {
