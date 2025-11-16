@@ -33,8 +33,7 @@ let selectedHour = null;
 const facilityId = <?= $id ?>;
 
 const today = new Date().toISOString().split('T')[0];
-dateInput.value = today;
-dateInput.min = today;
+
 
 async function fetchAvailability(date) {
     hoursContainer.innerHTML = '<p>Wczytywanie dostępnych terminów...</p>';
@@ -42,7 +41,6 @@ async function fetchAvailability(date) {
     try {
         const res = await fetch(`/api/facility/availability?id=${facilityId}&date=${date}`)
         const data = await res.json()
-
         if (!data.data || !data.data.available || data.data.available.length === 0) {
             hoursContainer.innerHTML = '<p>Brak wolnych terminów w tym dniu.</p>'
             reserveBtn.disabled = true
@@ -79,7 +77,10 @@ function renderAvailableHours(hours) {
 }
 
 window.addEventListener('load', () => {
+    dateInput.value = today;
+    dateInput.min = today;
     dateInput.addEventListener('change', (e) => {
+        console.log(e.target.value)
         fetchAvailability(e.target.value)
         reserveBtn.disabled = true
     })

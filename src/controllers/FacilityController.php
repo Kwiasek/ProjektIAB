@@ -15,7 +15,7 @@ class FacilityController {
         $description = trim($data['description']);
         $location = trim($data['location']);
         $image_url = trim($data['image_url']);
-        $price = $data['price'];
+        $price = trim($data['price']);
         $availability = $data['availability'];
 
         if (!isset($_SESSION['user'])) {

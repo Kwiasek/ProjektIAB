@@ -46,8 +46,7 @@ function routeRequest($uri) {
             $controller = new FacilityController();
 
             $facility = json_decode($controller->getFacilityById($id), true);
-
-            if ($facility['status'] == 'success') {
+            if ($facility['data']) {
                 require_once __DIR__ . "/../views/facilities/facility.php";
             } else {
                 header('Location: /');

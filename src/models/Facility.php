@@ -5,29 +5,44 @@ require_once __DIR__ . "/../config/db.php";
 class Facility {
     public function createFacility($name, $description, $location, $image_url, $price, $availability) {
         global $pdo;
-
-        $stmt = $pdo->prepare("INSERT INTO facilities (owner_id, name, description, location, price_per_hour, image_url, created_at) 
+        try {
+            $pdo->beginTransaction();
+            $stmt = $pdo->prepare("INSERT INTO facilities (owner_id, name, description, location, price_per_hour, image_url, created_at) 
         VALUES (?, ?, ?, ?, ?, ?, NOW())");
-        if (!$stmt->execute([$_SESSION['user']['id'], $name, $description, $location, $price, $image_url])) {
-            $_SESSION['error'] = 'Błąd serwera';
-            header("location: /facilities/add");
-            exit;
-        }
+            $stmt->execute([$_SESSION['user']['id'], $name, $description, $location, floatval($price), $image_url]);
 
-        $facilityId = $pdo->lastInsertId();
-        foreach ($availability as $day => $data) {
-            $open = $data['open'] ?? "00:00";
-            $close = $data['close'] ?? "00:00";
-            $is_open = isset($data['is_open']) ? 1 : 0;
-            $result = $this->createFacilityAvailability($facilityId, $day, $open, $close, $is_open);
-            if (!$result['success']) {
-                return $result;
+            $res = $stmt->rowCount();
+
+            if ($res <= 0) {
+                $_SESSION['error'] = 'Błąd serwera';
+                header("location: /facilities/add");
+                exit;
             }
+
+            $facilityId = $pdo->lastInsertId();
+            foreach ($availability as $day => $data) {
+                $open = $data['open'] ?? "00:00";
+                $close = $data['close'] ?? "00:00";
+                $is_open = isset($data['is_open']) ? 1 : 0;
+                $result = $this->createFacilityAvailability($facilityId, $day, $open, $close, $is_open);
+                if ($result <= 0) {
+                    return json_encode([
+                        'success' => false
+                    ]);
+                }
+            }
+
+            $pdo->commit();
+
+            return json_encode([
+                'success' => true
+            ]);
+        } catch (Exception $e) {
+            $pdo->rollBack();
+
+            throw new Exception($e->getMessage(), $pdo->lastInsertId());
         }
 
-        return json_encode([
-            'success' => true
-        ]);
     }
 
     public function updateFacility($id, $name, $description, $location, $image_url, $price, $availability) {
@@ -168,13 +183,14 @@ class Facility {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function createFacilityAvailability($facility_id, $day, $open, $close, $is_open) {
+    public function createFacilityAvailability($facility_id, $day, $open, $close, $is_open): ?int
+    {
         global $pdo;
 
         $stmt = $pdo->prepare("
         INSERT INTO facility_availability
-        (facility_id, day_of_week, open_time, close_time) 
-        VALUES (?, ?, ?, ?)       
+        (facility_id, day_of_week, open_time, close_time, is_open) 
+        VALUES (?, ?, ?, ?, ?)       
         ");
         if (!$stmt->execute([$facility_id, $day, $open, $close, $is_open])) {
             return null;
@@ -235,7 +251,6 @@ class Facility {
         $availability = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!isset($availability) || $availability['is_open'] !== 1) {
-            echo 'xd';
             return ['available' => [], 'open' => null, 'close' => null];
         }
 
