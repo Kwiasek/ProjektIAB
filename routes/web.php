@@ -61,6 +61,20 @@ function routeRequest($uri) {
             }
             break;
 
+        case '/my-reservations':
+            require_once __DIR__ . "/../src/controllers/ReservationController.php";
+            $controller = new ReservationController();
+            $controller->myReservations();
+            break;
+
+        case '/api/reservations/cancel':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                require_once __DIR__ . "/../src/models/Reservation.php";
+                $reservation = new Reservation();
+                $reservation->cancelReservation();
+            }
+            break;
+
         case '/facilities/add':
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 require_once __DIR__ . "/../src/controllers/FacilityController.php";
@@ -69,6 +83,97 @@ function routeRequest($uri) {
                 break;
             }
             require_once __DIR__ . '/../views/facilities/add.php';
+            break;
+
+        case '/facilities/edit':
+            $id = $_GET['id'] ?? null;
+            if (!$id) {
+                header('Location: /');
+                break;
+            }
+            require_once __DIR__ . "/../src/controllers/FacilityController.php";
+            $controller = new FacilityController();
+            $controller->editFacility($id);
+            break;
+
+        case '/facilities/update':
+            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+                require_once __DIR__ . "/../src/controllers/FacilityController.php";
+                $controller = new FacilityController();
+                $controller->updateFacility($_POST, $_FILES);
+            }
+            break;
+
+        case '/image/facility':
+            // Serve images by image_id or facility_id (first image)
+            require_once __DIR__ . "/../src/models/Facility.php";
+            $facility = new Facility();
+            $imageId = $_GET['image_id'] ?? null;
+            $facilityId = $_GET['facility_id'] ?? null;
+            if ($imageId) {
+                $facility->serveImageById($imageId);
+            } elseif ($facilityId) {
+                $facility->serveFirstImageOfFacility($facilityId);
+            } else {
+                http_response_code(404);
+            }
+            break;
+
+        case '/admin':
+            require_once __DIR__ . "/../src/controllers/AdminController.php";
+            $c = new AdminController();
+            $c->index();
+            break;
+
+        case '/admin/facilities':
+            require_once __DIR__ . "/../src/controllers/AdminController.php";
+            $c = new AdminController();
+            $c->myFacilities();
+            break;
+
+        case '/admin/reservations/confirm':
+            // POST: { reservation_id }
+            require_once __DIR__ . "/../src/controllers/AdminController.php";
+            $c = new AdminController();
+            header('Content-Type: application/json');
+            $c->confirmReservation();
+            break;
+
+        case '/admin/reservations/reject':
+            // POST: { reservation_id }
+            require_once __DIR__ . "/../src/controllers/AdminController.php";
+            $c = new AdminController();
+            header('Content-Type: application/json');
+            $c->rejectReservation();
+            break;
+
+        case '/admin/pending-count':
+            require_once __DIR__ . "/../src/controllers/AdminController.php";
+            $c = new AdminController();
+            $c->pendingCount();
+            break;
+
+        case '/facilities/delete':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                require_once __DIR__ . "/../src/models/Facility.php";
+                // basic ownership check
+                $id = $_POST['id'] ?? null;
+                if (!isset($_SESSION['user']) || !$id) {
+                    header('Location: /');
+                    break;
+                }
+                global $pdo;
+                $stmt = $pdo->prepare("SELECT owner_id FROM facilities WHERE id = ? LIMIT 1");
+                $stmt->execute([$id]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$row || $row['owner_id'] != $_SESSION['user']['id']) {
+                    header('Location: /');
+                    break;
+                }
+                $facility = new Facility();
+                $facility->deleteFacility($id);
+                header('Location: /admin/facilities');
+            }
             break;
 
         // Enddpointy do wysyłania formularzy

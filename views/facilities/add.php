@@ -11,7 +11,7 @@ ob_start();
 
 ?>
 
-<form action="/facilities/add" method="post" class="max-w-3xl px-12 mx-auto">
+<form action="/facilities/add" method="post" enctype="multipart/form-data" class="max-w-3xl px-12 mx-auto">
     <h1 class="font-bold text-3xl mb-2">Dodaj nowy obiekt</h1>
     <p class="font-medium text-gray-400 mb-4">Podaj szczegóły swojego obiektu aby przyciągnąć uwagę potencjalnych wypożyczających.</p>
     <div class="mb-4 flex flex-col gap-1">
@@ -24,8 +24,8 @@ ob_start();
     </div>
 
     <div class="mb-4 flex flex-col gap-1">
-        <label for="image_url" class="font-medium">Link do zdjęcia</label>
-        <input type="url" class="py-3 px-4 rounded-lg bg-gray-200 text-gray-800 font-medium" name="image_url" id="image_url""/>
+        <label for="images" class="font-medium">Zdjęcia obiektu (możesz przesłać kilka)</label>
+        <input type="file" class="py-3 px-4 rounded-lg bg-gray-200 text-gray-800 font-medium" name="images[]" id="images" accept="image/*" multiple />
     </div>
 
     <div class="mb-4 flex flex-col gap-1">

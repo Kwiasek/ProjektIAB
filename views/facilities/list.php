@@ -68,8 +68,9 @@ ob_start(); // rozpocznij buforowanie treści
             data.data.forEach(facility => {
                 const card = document.createElement('div');
                 card.className = 'bg-white shadow-md rounded-lg overflow-hidden flex p-3';
+                const thumb = facility.image_id ? `/image/facility?image_id=${facility.image_id}` : '/images/venue.jpg';
                 card.innerHTML = `
-                    <img src="${facility.image_url}" alt="${facility.name}" class="max-h-50 aspect-16/9 object-cover rounded-lg">
+                    <img src="${thumb}" alt="${facility.name}" class="max-h-50 aspect-16/9 object-cover rounded-lg">
                     <div class="p-4 flex flex-col gap-2 justify-center">
                         <h2 class="font-bold text-xl">${facility.name}</h2>
                         <p class="text-gray-600">${facility.location}</p>

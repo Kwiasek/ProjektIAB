@@ -3,13 +3,22 @@
 require_once __DIR__ . "/../config/db.php";
 
 class Facility {
-    public function createFacility($name, $description, $location, $image_url, $price, $availability) {
+    /**
+     * Create facility and save availability and uploaded images (BLOBs) to DB.
+     * @param string $name
+     * @param string $description
+     * @param string $location
+     * @param float $price
+     * @param array $availability
+     * @param array|null $imageFiles - contents of `$_FILES['images']` (optional)
+     */
+    public function createFacility($name, $description, $location, $price, $availability, $imageFiles = null) {
         global $pdo;
         try {
             $pdo->beginTransaction();
-            $stmt = $pdo->prepare("INSERT INTO facilities (owner_id, name, description, location, price_per_hour, image_url, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, NOW())");
-            $stmt->execute([$_SESSION['user']['id'], $name, $description, $location, floatval($price), $image_url]);
+            $stmt = $pdo->prepare("INSERT INTO facilities (owner_id, name, description, location, price_per_hour, created_at) 
+        VALUES (?, ?, ?, ?, ?, NOW())");
+            $stmt->execute([$_SESSION['user']['id'], $name, $description, $location, floatval($price)]);
 
             $res = $stmt->rowCount();
 
@@ -32,6 +41,31 @@ class Facility {
                 }
             }
 
+            // Zapisz zdjęcia (jeśli przesłano)
+            if ($imageFiles && isset($imageFiles['tmp_name']) ) {
+                // obsługa kilku plików przesłanych jako images[]
+                $count = is_array($imageFiles['tmp_name']) ? count($imageFiles['tmp_name']) : 0;
+                for ($i = 0; $i < $count; $i++) {
+                    $tmp = $imageFiles['tmp_name'][$i];
+                    $name = $imageFiles['name'][$i];
+                    $error = $imageFiles['error'][$i];
+                    if ($error !== UPLOAD_ERR_OK) continue;
+                    // Validation: max size 5MB, only images
+                    $size = filesize($tmp);
+                    $maxSize = 5 * 1024 * 1024; // 5MB
+                    if ($size > $maxSize) continue;
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $tmp) ?: 'application/octet-stream';
+                    finfo_close($finfo);
+                    $allowed = ['image/jpeg','image/png','image/webp'];
+                    if (!in_array($mime, $allowed)) continue;
+                    $dataBlob = file_get_contents($tmp);
+
+                    $imgStmt = $pdo->prepare("INSERT INTO facility_images (facility_id, mime_type, data, created_at) VALUES (?, ?, ?, NOW())");
+                    $imgStmt->execute([$facilityId, $mime, $dataBlob]);
+                }
+            }
+
             $pdo->commit();
 
             return json_encode([
@@ -45,7 +79,7 @@ class Facility {
 
     }
 
-    public function updateFacility($id, $name, $description, $location, $image_url, $price, $availability) {
+    public function updateFacility($id, $name, $description, $location, $price, $availability, $imageFiles = null, $deleteImageIds = []) {
         global $pdo;
 
         try {
@@ -55,11 +89,11 @@ class Facility {
             // Aktualizacja głównej tabeli facilities
             $stmt = $pdo->prepare("
             UPDATE facilities 
-            SET name = ?, description = ?, location = ?, image_url = ?, price_per_hour = ?, updated_at = NOW()
+            SET name = ?, description = ?, location = ?, price_per_hour = ?
             WHERE id = ?
         ");
 
-            if (!$stmt->execute([$name, $description, $location, $image_url, $price, $id])) {
+            if (!$stmt->execute([$name, $description, $location, $price, $id])) {
                 throw new Exception('Nie udało się zaktualizować danych obiektu.');
             }
 
@@ -100,6 +134,37 @@ class Facility {
             }
 
             // Jeśli wszystko się udało — zatwierdź
+
+            // Usuń wskazane zdjęcia
+            if (!empty($deleteImageIds) && is_array($deleteImageIds)) {
+                // zabezpieczenie: pracujemy tylko na intach
+                $placeholders = implode(',', array_fill(0, count($deleteImageIds), '?'));
+                $delStmt = $pdo->prepare("DELETE FROM facility_images WHERE id IN ($placeholders) AND facility_id = ?");
+                $params = array_merge($deleteImageIds, [$id]);
+                $delStmt->execute($params);
+            }
+
+            // Dodaj nowe zdjęcia jeśli przesłano
+            if ($imageFiles && isset($imageFiles['tmp_name'])) {
+                $count = is_array($imageFiles['tmp_name']) ? count($imageFiles['tmp_name']) : 0;
+                for ($i = 0; $i < $count; $i++) {
+                    $tmp = $imageFiles['tmp_name'][$i];
+                    $error = $imageFiles['error'][$i];
+                    if ($error !== UPLOAD_ERR_OK) continue;
+                    $size = filesize($tmp);
+                    $maxSize = 5 * 1024 * 1024;
+                    if ($size > $maxSize) continue;
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = finfo_file($finfo, $tmp) ?: 'application/octet-stream';
+                    finfo_close($finfo);
+                    $allowed = ['image/jpeg','image/png','image/webp'];
+                    if (!in_array($mime, $allowed)) continue;
+                    $dataBlob = file_get_contents($tmp);
+                    $imgStmt = $pdo->prepare("INSERT INTO facility_images (facility_id, mime_type, data, created_at) VALUES (?, ?, ?, NOW())");
+                    $imgStmt->execute([$id, $mime, $dataBlob]);
+                }
+            }
+
             $pdo->commit();
 
             return json_encode([
@@ -125,7 +190,31 @@ class Facility {
         if (!$stmt->execute([$id])) {
             return null;
         }
-        return $stmt->fetch();
+        $facility = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($facility) {
+            $imgs = $this->getFacilityImages($id);
+            $facility['image_ids'] = $imgs['image_ids'] ?? [];
+            // expose first image id for quick thumbnail use
+            $facility['first_image_id'] = $facility['image_ids'][0] ?? null;
+        }
+        return $facility;
+    }
+
+    /**
+     * Pobiera obrazy obiektu, zwraca tablicę data-URL (base64)
+     */
+    public function getFacilityImages($facilityId): array
+    {
+        global $pdo;
+
+        $stmt = $pdo->prepare("SELECT id FROM facility_images WHERE facility_id = ? ORDER BY id ASC");
+        $stmt->execute([$facilityId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $imageIds = [];
+        foreach ($rows as $r) {
+            $imageIds[] = $r['id'];
+        }
+        return ['image_ids' => $imageIds];
     }
 
     public function getFacilities() {
@@ -148,7 +237,10 @@ class Facility {
 
     public function getFiltered($filters) {
         global $pdo;
-        $sql = "SELECT f.* FROM facilities f";
+        // Include first image id (thumbnail) as image_id
+        $sql = "SELECT f.*, (
+            SELECT id FROM facility_images fi WHERE fi.facility_id = f.id ORDER BY id ASC LIMIT 1
+        ) AS image_id FROM facilities f";
         $params = [];
         $conditions = [];
 
@@ -181,6 +273,102 @@ class Facility {
         $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Serve raw image blob by image id */
+    public function serveImageById($imageId): void
+    {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT mime_type, data FROM facility_images WHERE id = ? LIMIT 1");
+        $stmt->execute([$imageId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            // fallback to a static placeholder image if DB image not found
+            $fallback = __DIR__ . '/../../public/images/venue.jpg';
+            if (file_exists($fallback)) {
+                $mime = mime_content_type($fallback) ?: 'image/jpeg';
+                header('Content-Type: ' . $mime);
+                readfile($fallback);
+                return;
+            }
+            http_response_code(404);
+            return;
+        }
+        $mime = $row['mime_type'];
+        $data = $row['data'];
+
+        // support size param: thumb or medium (else full)
+        $size = $_GET['size'] ?? null;
+        if ($size === 'thumb' || $size === 'medium') {
+            // If GD is available, try to resize. If not, fall back to original blob.
+            if (function_exists('imagecreatefromstring')) {
+                // Try to create GD image from string
+                $im = @imagecreatefromstring($data);
+                if ($im !== false) {
+                    $origW = imagesx($im);
+                    $origH = imagesy($im);
+                    $targetW = ($size === 'thumb') ? 300 : 900;
+                    if ($origW <= $targetW) {
+                        // no resize needed
+                        header('Content-Type: ' . $mime);
+                        echo $data;
+                        imagedestroy($im);
+                        exit;
+                    }
+                    $ratio = $origH / $origW;
+                    $targetH = (int)round($targetW * $ratio);
+                    $dst = imagecreatetruecolor($targetW, $targetH);
+                    // preserve transparency for png/webp
+                    if ($mime === 'image/png' || $mime === 'image/webp') {
+                        imagealphablending($dst, false);
+                        imagesavealpha($dst, true);
+                        $transparent = imagecolorallocatealpha($dst, 0, 0, 0, 127);
+                        imagefilledrectangle($dst, 0, 0, $targetW, $targetH, $transparent);
+                    }
+                    imagecopyresampled($dst, $im, 0, 0, 0, 0, $targetW, $targetH, $origW, $origH);
+
+                    // output resized image in same mime
+                    header('Content-Type: ' . $mime);
+                    if ($mime === 'image/png') {
+                        imagepng($dst);
+                    } elseif ($mime === 'image/webp') {
+                        if (function_exists('imagewebp')) imagewebp($dst);
+                        else imagejpeg($dst, null, 85);
+                    } else {
+                        // default to jpeg
+                        imagejpeg($dst, null, 85);
+                    }
+                    imagedestroy($dst);
+                    imagedestroy($im);
+                    exit;
+                }
+                // if GD failed to read image, fall through to original blob
+            } else {
+                // GD not available — return original blob to avoid fatal error
+                header('Content-Type: ' . $mime);
+                echo $data;
+                exit;
+            }
+        }
+
+        header('Content-Type: ' . $mime);
+        echo $data;
+        exit;
+    }
+
+    /** Serve first image of a facility (by facility id) */
+    public function serveFirstImageOfFacility($facilityId): void
+    {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT id FROM facility_images WHERE facility_id = ? ORDER BY id ASC LIMIT 1");
+        $stmt->execute([$facilityId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            http_response_code(404);
+            return;
+        }
+        // delegate to serveImageById to respect size param
+        $this->serveImageById($row['id']);
     }
 
     public function createFacilityAvailability($facility_id, $day, $open, $close, $is_open): ?int
@@ -258,10 +446,11 @@ class Facility {
         $close = (int) explode(':', $availability['close_time'])[0];
         $availableHours = range($open, $close - 1);
 
+
         $stmt = $pdo->prepare("
             SELECT start_time, end_time
             FROM reservations
-            WHERE facility_id = ? AND date = ?
+            WHERE facility_id = ? AND date = ? AND status != 'cancelled'
         ");
         $stmt->execute([$facilityId, $date]);
         $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);

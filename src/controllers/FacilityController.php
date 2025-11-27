@@ -14,7 +14,8 @@ class FacilityController {
         $name = trim($data['name']);
         $description = trim($data['description']);
         $location = trim($data['location']);
-        $image_url = trim($data['image_url']);
+        // obsługa wielu zdjęć przesłanych przez formularz (input name="images[]")
+        $imageFiles = $_FILES['images'] ?? null;
         $price = trim($data['price']);
         $availability = $data['availability'];
 
@@ -30,7 +31,7 @@ class FacilityController {
         }
 
         try {
-            $this->facility->createFacility($name, $description, $location, $image_url, $price, $availability);
+            $this->facility->createFacility($name, $description, $location, $price, $availability, $imageFiles);
             header('Location: /');
             exit;
         } catch (Exception $e) {
@@ -122,5 +123,67 @@ class FacilityController {
                 'message' => $e->getMessage()
             ]);
         }
+    }
+
+    public function editFacility($id): void
+    {
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+        $facility = $this->facility->getFacility($id);
+        if (!$facility) {
+            header('Location: /');
+            exit;
+        }
+        require_once __DIR__ . "/../../views/facilities/edit.php";
+    }
+
+    public function updateFacility($post, $files): void
+    {
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+        
+        $id = $post['id'];
+        $name = trim($post['name']);
+        $description = trim($post['description']);
+        $location = trim($post['location']);
+        $price = trim($post['price']);
+        $availability = $post['availability'] ?? [];
+        $deleteImages = $post['delete_images'] ?? [];
+        // Normalize delete images input: ensure array of ints
+        if (!is_array($deleteImages)) {
+            if (empty($deleteImages)) {
+                $deleteImages = [];
+            } else {
+                $deleteImages = [$deleteImages];
+            }
+        }
+        $deleteImages = array_values(array_filter(array_map(function($v){
+            return is_numeric($v) ? (int)$v : null;
+        }, $deleteImages)));
+        $imageFiles = $files['images'] ?? null;
+
+        // The model returns a JSON string with success/error instead of throwing.
+        $result = $this->facility->updateFacility($id, $name, $description, $location, $price, $availability, $imageFiles, $deleteImages);
+        $parsed = null;
+        if (is_string($result)) {
+            $parsed = json_decode($result, true);
+        }
+
+        if ($parsed && isset($parsed['success']) && $parsed['success'] === true) {
+            header('Location: /facility?id=' . $id);
+            exit;
+        }
+
+        // If we reach here — update failed. Use message from model if available.
+        $err = 'Błąd przy aktualizacji obiektu.';
+        if (is_array($parsed) && !empty($parsed['error'])) $err = $parsed['error'];
+        if (is_array($parsed) && !empty($parsed['message'])) $err = $parsed['message'];
+        $_SESSION['error'] = $err;
+        header('Location: /facilities/edit?id=' . $id);
+        exit;
     }
 }

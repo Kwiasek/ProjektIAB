@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS facilities (
                                           description TEXT NOT NULL,
                                           location VARCHAR(255) NOT NULL,
                                           price_per_hour DECIMAL(8,2) NOT NULL,
-                                          image_url VARCHAR(255) NOT NULL,
                                           created_at DATETIME NOT NULL,
                                           FOREIGN KEY (owner_id) REFERENCES users(id)
 );
@@ -102,4 +101,13 @@ create table facility_availability (
                                        created_at datetime default current_timestamp,
                                        updated_at datetime default current_timestamp on update current_timestamp,
                                        foreign key (facility_id) references facilities(id) on delete cascade
+);
+
+CREATE TABLE IF NOT EXISTS facility_images (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    facility_id INT NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    data LONGBLOB NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (facility_id) REFERENCES facilities(id) ON DELETE CASCADE
 );
