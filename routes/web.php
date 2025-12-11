@@ -193,6 +193,43 @@ function routeRequest($uri) {
             }
             break;
 
+        // Review routes
+        case '/api/reviews/add':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                require_once __DIR__ . "/../src/controllers/ReviewController.php";
+                $controller = new ReviewController();
+                $controller->addReview();
+            }
+            break;
+
+        case '/api/reviews/update':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                require_once __DIR__ . "/../src/controllers/ReviewController.php";
+                $controller = new ReviewController();
+                $controller->updateReview();
+            }
+            break;
+
+        case '/api/reviews/delete':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                require_once __DIR__ . "/../src/controllers/ReviewController.php";
+                $controller = new ReviewController();
+                $controller->deleteReview();
+            }
+            break;
+
+        case '/api/facility/reviews':
+            require_once __DIR__ . "/../src/controllers/ReviewController.php";
+            $controller = new ReviewController();
+            $controller->getReviews();
+            break;
+
+        case '/api/facility/user-review':
+            require_once __DIR__ . "/../src/controllers/ReviewController.php";
+            $controller = new ReviewController();
+            $controller->getUserReview();
+            break;
+
         default:
             http_response_code(404);
             echo '<h1 class="underline">404 - Strona nie została znaleziona</h1>';
