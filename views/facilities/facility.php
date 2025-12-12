@@ -6,7 +6,6 @@ if (isset($facility['data'])) {
 }
 
 ob_start();
-
 ?>
 
 <main class="max-w-6xl mx-auto flex gap-6">
@@ -24,28 +23,55 @@ ob_start();
     <div class="flex flex-col gap-3">
         <h1 class="font-bold text-2xl"><?= $data['name'] ?></h1>
         <p class="mb-2"><?= $data['description']?></p>
-        <h2 class="font-bold">Dostępność</h2>
-        <label for="date">Wybierz datę:</label>
-        <input type="date" id="date" class="border px-3 py-2 rounded-sm" />
-        <h2 class="font-bold mt-6 mb-2">Dostępne godziny</h2>
-        <div id="hoursContainer" class="grid grid-cols-3 gap-2"></div>
-        <div id="selectionSummary" class="text-sm text-gray-600 mt-2"></div>
-        <div id="confirmMessage" class="mt-2 hidden p-3 rounded bg-green-50 text-green-800"></div>
-        <button id="reserveBtn" class="mt-4 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-blue-300" disabled>Zarezerwuj</button>
+        
+        <!-- Schedule -->
+        <h2 class="font-bold">Harmonogram</h2>
+        <div class="space-y-1 text-sm">
+            <?php 
+            $dayTranslation = [
+                'monday' => 'Poniedziałek',
+                'tuesday' => 'Wtorek',
+                'wednesday' => 'Środa',
+                'thursday' => 'Czwartek',
+                'friday' => 'Piątek',
+                'saturday' => 'Sobota',
+                'sunday' => 'Niedziela'
+            ];
+            foreach ($schedule as $day): ?>
+                <div class="flex py-1 justify-between w-full">
+                    <span><?= htmlspecialchars($dayTranslation[$day['day_of_week']] ?? $day['day_of_week']) ?>:</span>
+                    <span class="font-medium">
+                        <?php if ($day['is_open']): ?>
+                            <?= substr($day['open_time'], 0, 5) ?> - <?= substr($day['close_time'], 0, 5) ?>
+                        <?php else: ?>
+                            <span class="text-red-600">Zamknięte</span>
+                        <?php endif; ?>
+                    </span>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <?php if (isset($_SESSION['user'])): ?>
+            <!-- Reservation section - visible only for logged-in users -->
+            <h2 class="font-bold mt-6">Dostępność</h2>
+            <label for="date">Wybierz datę:</label>
+            <input type="date" id="date" class="border px-3 py-2 rounded-sm" />
+            <h2 class="font-bold mt-6 mb-2">Dostępne godziny</h2>
+            <div id="hoursContainer" class="grid grid-cols-3 gap-2"></div>
+            <div id="selectionSummary" class="text-sm text-gray-600 mt-2"></div>
+            <div id="confirmMessage" class="mt-2 hidden p-3 rounded bg-green-50 text-green-800"></div>
+            <button id="reserveBtn" class="mt-4 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:cursor-pointer disabled:cursor-not-allowed disabled:bg-blue-300" disabled>Zarezerwuj</button>
+        <?php else: ?>
+            <!-- Message for non-logged users -->
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded text-blue-800">
+                <p class="font-semibold">Aby dokonać rezerwacji, musisz się zalogować</p>
+                <p class="text-sm mt-1"><a href="/login" class="underline font-medium">Zaloguj się</a> lub <a href="/register" class="underline font-medium">zarejestruj nowe konto</a></p>
+            </div>
+        <?php endif; ?>
     </div>
 </main>
 <script>
-    // DOM references and state
-    const dateInput = document.getElementById('date');
-    const hoursContainer = document.getElementById('hoursContainer');
-    const reserveBtn = document.getElementById('reserveBtn');
-    let selectedStart = null;
-    let selectedEnd = null;
-    const facilityId = <?= $id ?>;
-    const pricePerHour = <?= floatval($data['price_per_hour'] ?? 0) ?>;
-    const today = new Date().toISOString().split('T')[0];
-
-    // Slider init using image IDs
+    // Slider init (always available)
     function slider(){
         const imageIds = <?= json_encode($data['image_ids'] ?? []) ?>;
         if (!imageIds || imageIds.length === 0) return;
@@ -77,6 +103,20 @@ ob_start();
         renderDots();
         show(0);
     };
+
+    slider();
+
+    // Reservation section - only for logged-in users
+    <?php if (isset($_SESSION['user'])): ?>
+    // DOM references and state
+    const dateInput = document.getElementById('date');
+    const hoursContainer = document.getElementById('hoursContainer');
+    const reserveBtn = document.getElementById('reserveBtn');
+    let selectedStart = null;
+    let selectedEnd = null;
+    const facilityId = <?= $id ?>;
+    const pricePerHour = <?= floatval($data['price_per_hour'] ?? 0) ?>;
+    const today = new Date().toISOString().split('T')[0];
 
 
 function renderAvailableHours(hours) {
@@ -256,16 +296,11 @@ window.addEventListener('load', () => {
             confirmEl.textContent = 'Błąd sieci podczas rezerwacji.';
             console.error(e)
         }
-    })
-
-    fetchAvailability(today)
-
 })
 
-
-
-
-
+fetchAvailability(today)
+})
+<?php endif; ?>
 </script>
 
 <!-- Reviews Section -->
@@ -294,11 +329,48 @@ window.addEventListener('load', () => {
         </div>
     </div>
 
+    <!-- Add Review Button -->
+    <?php if (isset($_SESSION['user'])): ?>
+        <div class="mb-8">
+            <button id="addReviewBtn" class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">Dodaj opinię</button>
+        </div>
+    <?php endif; ?>
+
     <!-- Reviews List -->
     <div id="reviewsList" class="space-y-6">
         <!-- Reviews will be loaded here -->
     </div>
 </section>
+
+<!-- Add Review Modal -->
+<div id="reviewModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none;">
+    <div class="bg-white rounded-lg shadow-lg p-6 w-96">
+        <h2 class="text-2xl font-bold mb-4">Oceń obiekt</h2>
+        <p id="facilityNameInModal" class="text-gray-600 mb-4"></p>
+
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-3">Ocena:</label>
+            <div class="flex gap-3 justify-center">
+                <div id="starRating" class="flex gap-2">
+                    <!-- Stars will be generated by JS -->
+                </div>
+            </div>
+            <input type="hidden" id="ratingValue" value="0">
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-sm font-medium mb-2">Komentarz:</label>
+            <textarea id="commentText" class="w-full border rounded p-3 text-sm resize-none" rows="4" placeholder="Podziel się swoją opinią..."></textarea>
+        </div>
+
+        <div class="flex gap-3">
+            <button id="submitReview" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Wyślij opinię</button>
+            <button id="closeReviewModal" class="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Anuluj</button>
+        </div>
+
+        <input type="hidden" id="facilityIdForReview">
+    </div>
+</div>
 
 <!-- Edit Review Modal -->
 <div id="editReviewModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none;">
@@ -342,6 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 displayRatingSummary(data.average_rating, data.rating_breakdown, data.total_reviews);
                 displayReviews(data.reviews);
+
+                // Check if user already has a review
+                if (userId && userId !== 'null') {
+                    const userReviewRes = await fetch(`/api/facility/user-review?facility_id=${facilityId}`);
+                    const userReviewData = await userReviewRes.json();
+                    const addReviewBtn = document.getElementById('addReviewBtn');
+                    if (userReviewData.review && addReviewBtn) {
+                        addReviewBtn.style.display = 'none';
+                    }
+                }
             }
         } catch (err) {
             console.error('Error loading reviews:', err);
@@ -392,7 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const isFacilityOwner = userId === facilityOwnerId;
             
             const reviewEl = document.createElement('div');
-            reviewEl.className = 'border rounded-lg p-4 bg-white';
+            reviewEl.className = 'rounded-lg p-4 bg-white';
             reviewEl.innerHTML = `
                 <div class="flex justify-between items-start mb-3">
                     <div>
@@ -426,6 +508,128 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Handle Add Review button
+    const addReviewBtn = document.getElementById('addReviewBtn');
+    if (addReviewBtn) {
+        addReviewBtn.addEventListener('click', async () => {
+            const reviewModal = document.getElementById('reviewModal');
+            const facilityNameInModal = document.getElementById('facilityNameInModal');
+            const facilityIdForReview = document.getElementById('facilityIdForReview');
+            const ratingValue = document.getElementById('ratingValue');
+            const commentText = document.getElementById('commentText');
+            const starRating = document.getElementById('starRating');
+
+            facilityIdForReview.value = facilityId;
+            facilityNameInModal.textContent = <?= json_encode($data['name']) ?>;
+            ratingValue.value = 0;
+            commentText.value = '';
+            generateReviewStars();
+
+            // Check if user already has a review
+            try {
+                const res = await fetch(`/api/facility/user-review?facility_id=${facilityId}`);
+                const data = await res.json();
+                if (data.review) {
+                    // User already has a review - show message
+                    alert('Już wystawiłeś opinię dla tego obiektu.');
+                    return;
+                } else {
+                    reviewModal.style.display = 'flex';
+                }
+            } catch (err) {
+                reviewModal.style.display = 'flex';
+            }
+        });
+    }
+
+    // Handle Review Modal
+    const reviewModal = document.getElementById('reviewModal');
+    const closeReviewModal = document.getElementById('closeReviewModal');
+    const submitReview = document.getElementById('submitReview');
+    
+    if (closeReviewModal) {
+        closeReviewModal.addEventListener('click', () => {
+            reviewModal.style.display = 'none';
+        });
+    }
+
+    if (submitReview) {
+        submitReview.addEventListener('click', async () => {
+            const facilityIdForReview = document.getElementById('facilityIdForReview');
+            const ratingValue = document.getElementById('ratingValue');
+            const commentText = document.getElementById('commentText');
+
+            const facilityId = facilityIdForReview.value;
+            const rating = parseInt(ratingValue.value);
+            const comment = commentText.value.trim();
+
+            if (rating === 0) {
+                alert('Wybierz ocenę.');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/reviews/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        facility_id: facilityId,
+                        rating: rating,
+                        comment: comment
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    reviewModal.style.display = 'none';
+                    loadReviews();
+                    if (addReviewBtn) {
+                        addReviewBtn.style.display = 'none';
+                    }
+                    alert('Opinia dodana pomyślnie!');
+                } else {
+                    alert(data.error || 'Błąd podczas dodawania opinii.');
+                }
+            } catch (err) {
+                alert('Błąd sieci.');
+            }
+        });
+    }
+
+    function generateReviewStars() {
+        const starRating = document.getElementById('starRating');
+        const ratingValue = document.getElementById('ratingValue');
+        
+        starRating.innerHTML = '';
+        for (let i = 1; i <= 5; i++) {
+            const star = document.createElement('button');
+            star.type = 'button';
+            star.className = 'star text-3xl cursor-pointer transition';
+            star.textContent = '☆';
+            star.dataset.rating = i;
+            star.addEventListener('click', (e) => {
+                e.preventDefault();
+                ratingValue.value = i;
+                updateReviewStarDisplay();
+            });
+            star.addEventListener('mouseenter', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('#starRating .star').forEach((s, idx) => {
+                    s.textContent = idx < i ? '★' : '☆';
+                });
+            });
+            starRating.appendChild(star);
+        }
+        starRating.addEventListener('mouseleave', updateReviewStarDisplay);
+    }
+
+    function updateReviewStarDisplay() {
+        const ratingValue = document.getElementById('ratingValue');
+        const rating = parseInt(ratingValue.value) || 0;
+        document.querySelectorAll('#starRating .star').forEach((s, idx) => {
+            s.textContent = idx < rating ? '★' : '☆';
+        });
+    }
+
     function openEditModal(e) {
         const reviewId = e.target.getAttribute('data-review-id');
         const rating = parseInt(e.target.getAttribute('data-rating'));
@@ -436,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editCommentText').value = comment;
 
         generateEditStars();
-        document.getElementById('editReviewModal').classList.remove('hidden');
+        document.getElementById('editReviewModal').style.display = 'flex';
     }
 
     function generateEditStars() {

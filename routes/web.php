@@ -47,6 +47,10 @@ function routeRequest($uri) {
 
             $facility = json_decode($controller->getFacilityById($id), true);
             if ($facility['data']) {
+                // Get facility schedule
+                require_once __DIR__ . "/../src/models/Facility.php";
+                $facilityModel = new Facility();
+                $schedule = $facilityModel->getFacilitySchedule($id);
                 require_once __DIR__ . "/../views/facilities/facility.php";
             } else {
                 header('Location: /');

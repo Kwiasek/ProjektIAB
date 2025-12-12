@@ -23,7 +23,7 @@ ob_start();
                     $imageId = $res['image_id'] ?? null;
                     $totalPrice = isset($res['total_price']) ? number_format((float)$res['total_price'], 2) : null;
                 ?>
-                    <div class="p-4 bg-white rounded shadow flex justify-between items-center">
+                    <div class="p-4 bg-white rounded shadow flex justify-between items-center cursor-pointer hover:bg-gray-50 transition" data-facility-id="<?= $res['facility_id'] ?>" onclick="window.location.href='/facility?id=<?= $res['facility_id'] ?>'">
                         <div class="flex items-center gap-4">
                             <?php if ($imageId): ?>
                                 <img src="/image/facility?image_id=<?= $imageId ?>&amp;size=thumb" alt="miniatura" class="w-20 h-12 object-cover rounded">
@@ -36,7 +36,7 @@ ob_start();
                                 <div class="text-sm">Status: <strong><?= $res['status'] === 'pending' ? 'Oczekuje na potwierdzenie' : 'Potwierdzona' ?></strong></div>
                             </div>
                         </div>
-                        <div class="flex gap-4 items-center">
+                        <div class="flex gap-4 items-center" onclick="event.stopPropagation()">
                             <?php if ($totalPrice !== null): ?>
                                 <div class="text-right text-sm text-gray-700">Cena: <strong><?= $totalPrice ?> zł</strong></div>
                             <?php endif; ?>
@@ -62,7 +62,7 @@ ob_start();
                     $imageId = $res['image_id'] ?? null;
                     $totalPrice = isset($res['total_price']) ? number_format((float)$res['total_price'], 2) : null;
                 ?>
-                    <div class="p-4 bg-white rounded shadow flex justify-between items-center">
+                    <div class="p-4 bg-white rounded shadow flex justify-between items-center cursor-pointer hover:bg-gray-50 transition" data-facility-id="<?= $res['facility_id'] ?>" onclick="window.location.href='/facility?id=<?= $res['facility_id'] ?>'">
                         <div class="flex items-center gap-4">
                             <?php if ($imageId): ?>
                                 <img src="/image/facility?image_id=<?= $imageId ?>&amp;size=thumb" alt="miniatura" class="w-20 h-12 object-cover rounded" style="filter:grayscale(100%); opacity:0.78;">
@@ -74,11 +74,15 @@ ob_start();
                                 <div class="text-sm text-gray-600"><?= htmlspecialchars($res['date']) ?> — <?= htmlspecialchars($res['start_time']) ?> do <?= htmlspecialchars($res['end_time']) ?></div>
                             </div>
                         </div>
-                        <div class="flex gap-4 items-center">
+                        <div class="flex gap-4 items-center" onclick="event.stopPropagation()">
                             <?php if ($totalPrice !== null): ?>
                                 <div class="text-sm text-gray-700">Cena: <strong><?= $totalPrice ?> zł</strong></div>
                             <?php endif; ?>
-                            <button class="review-btn px-3 py-2 bg-blue-100 text-blue-600 rounded" data-facility-id="<?= $res['facility_id'] ?>" data-facility-name="<?= htmlspecialchars($res['facility_name'] ?? 'Obiekt') ?>">Oceń</button>
+                            <?php if (!$res['user_has_review']): ?>
+                                <button class="review-btn px-3 py-2 bg-blue-100 text-blue-600 rounded cursor-pointer" data-facility-id="<?= $res['facility_id'] ?>" data-facility-name="<?= htmlspecialchars($res['facility_name'] ?? 'Obiekt') ?>">Oceń</button>
+                            <?php else: ?>
+                                <span class="text-sm text-gray-500">Już oceniono</span>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>

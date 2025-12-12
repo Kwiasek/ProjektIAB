@@ -471,4 +471,23 @@ class Facility {
             'close' => $close,
         ];
     }
+
+    /**
+     * Get facility opening hours for all days of the week
+     * @param int $facilityId
+     * @return array
+     */
+    public function getFacilitySchedule($facilityId): array
+    {
+        global $pdo;
+
+        $stmt = $pdo->prepare("
+            SELECT day_of_week, open_time, close_time, is_open
+            FROM facility_availability
+            WHERE facility_id = ?
+            ORDER BY FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')
+        ");
+        $stmt->execute([$facilityId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
