@@ -56,7 +56,7 @@ ob_start();
     </div>
 
     <?php if (!empty($_SESSION['error'])): ?>
-        <p class="text-red-500 text-center mb-3"><?= $_SESSION['error'] ?></p>
+        <p class="text-red-500 text-center mb-3"><?= htmlspecialchars($_SESSION['error']) ?></p>
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
 

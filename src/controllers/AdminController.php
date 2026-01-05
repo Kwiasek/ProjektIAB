@@ -21,17 +21,17 @@ class AdminController
 
         $userId = $_SESSION['user']['id'];
 
-        // Total earnings (sum of total_price for confirmed reservations for owner's facilities)
+        // Total earnings (sum of total_price for paid reservations for owner's facilities)
         $stmt = $this->pdo->prepare("SELECT IFNULL(SUM(r.total_price),0) as total FROM reservations r
             JOIN facilities f ON f.id = r.facility_id
-            WHERE f.owner_id = ? AND r.status = 'confirmed'");
+            WHERE f.owner_id = ? AND r.status = 'paid'");
         $stmt->execute([$userId]);
         $total = $stmt->fetchColumn();
 
         // Earnings this month (by reservation date)
         $stmt = $this->pdo->prepare("SELECT IFNULL(SUM(r.total_price),0) as month_total FROM reservations r
             JOIN facilities f ON f.id = r.facility_id
-            WHERE f.owner_id = ? AND r.status = 'confirmed' AND YEAR(r.date) = YEAR(CURDATE()) AND MONTH(r.date) = MONTH(CURDATE())");
+            WHERE f.owner_id = ? AND r.status = 'paid' AND YEAR(r.date) = YEAR(CURDATE()) AND MONTH(r.date) = MONTH(CURDATE())");
         $stmt->execute([$userId]);
         $monthTotal = $stmt->fetchColumn();
 
@@ -60,15 +60,21 @@ class AdminController
         $stmt->execute([$userId]);
         $cancelled = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Paid reservations (recent)
+        $stmt = $this->pdo->prepare("SELECT r.*, u.name as user_name, f.name as facility_name FROM reservations r JOIN users u ON u.id = r.user_id JOIN facilities f ON f.id = r.facility_id WHERE f.owner_id = ? AND r.status = 'paid' ORDER BY r.date DESC, r.start_time DESC LIMIT 50");
+        $stmt->execute([$userId]);
+        $paid = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
         $stats = [
             'total_earnings' => $total,
             'month_earnings' => $monthTotal,
             'total_reservations' => $totalRes,
             'month_reservations' => $monthRes,
             'pending_reservations' => count($pending),
-            'pending_list' => $pending
-            , 'confirmed_list' => $confirmed
-            , 'cancelled_list' => $cancelled
+            'pending_list' => $pending,
+            'confirmed_list' => $confirmed,
+            'cancelled_list' => $cancelled,
+            'paid_list' => $paid
         ];
 
         $data = json_encode(['status' => 'success', 'data' => $stats]);

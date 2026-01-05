@@ -17,12 +17,12 @@ ob_start();
             <button id="nextImg" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/60 rounded-full px-3 py-2">›</button>
             <div id="imageDots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2"></div>
         <?php else: ?>
-            <div class="text-center p-6 text-gray-500">Brak zdjęć obiektu</div>
+            <div class="w-full h-full flex items-center justify-center text-center text-gray-500">Brak zdjęć obiektu</div>
         <?php endif; ?>
     </div>
     <div class="flex flex-col gap-3">
-        <h1 class="font-bold text-2xl"><?= $data['name'] ?></h1>
-        <p class="mb-2"><?= $data['description']?></p>
+        <h1 class="font-bold text-2xl"><?= htmlspecialchars($data['name']) ?></h1>
+        <p class="mb-2"><?= htmlspecialchars($data['description'])?></p>
         
         <!-- Schedule -->
         <h2 class="font-bold">Harmonogram</h2>

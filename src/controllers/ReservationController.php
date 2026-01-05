@@ -40,4 +40,34 @@ class ReservationController {
 
         require_once __DIR__ . "/../../views/reservations/list.php";
     }
+
+    public function payReservation(): void
+    {
+        if (!isset($_SESSION['user'])) {
+            header('Location: /login');
+            exit;
+        }
+
+        $reservationId = $_GET['id'] ?? null;
+        if (!$reservationId) {
+            header('Location: /my-reservations');
+            exit;
+        }
+
+        $userId = $_SESSION['user']['id'];
+        $reservationModel = new Reservation();
+
+        // Pobierz rezerwację
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT r.*, f.name as facility_name FROM reservations r JOIN facilities f ON f.id = r.facility_id WHERE r.id = ? AND r.user_id = ?");
+        $stmt->execute([$reservationId, $userId]);
+        $reservation = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$reservation || $reservation['status'] !== 'confirmed') {
+            header('Location: /my-reservations');
+            exit;
+        }
+
+        require_once __DIR__ . "/../../views/reservations/pay.php";
+    }
 }

@@ -60,6 +60,23 @@ ob_start();
     </div>
 
     <div class="mb-6 bg-white p-4 rounded shadow">
+        <h2 class="font-semibold mb-2">Opłacone rezerwacje (ostatnie)</h2>
+        <div class="space-y-2">
+            <?php if (!empty($stats['paid_list'])): foreach ($stats['paid_list'] as $p): ?>
+                <div class="p-2 border-b flex justify-between items-center">
+                    <div>
+                        <div class="font-medium"><?= htmlspecialchars($p['facility_name']) ?></div>
+                        <div class="text-sm text-gray-600"><?= htmlspecialchars($p['user_name']) ?> — <?= $p['date'] ?> <?= $p['start_time'] ?>-<?= $p['end_time'] ?></div>
+                    </div>
+                    <div class="text-sm text-green-700 font-medium"><?= number_format($p['total_price'],2) ?> zł</div>
+                </div>
+            <?php endforeach; else: ?>
+                <div class="text-gray-500">Brak opłaconych rezerwacji.</div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="mb-6 bg-white p-4 rounded shadow">
         <h2 class="font-semibold mb-2">Odrzucone / anulowane rezerwacje (ostatnie)</h2>
         <div class="space-y-2">
             <?php if (!empty($stats['cancelled_list'])): foreach ($stats['cancelled_list'] as $c): ?>

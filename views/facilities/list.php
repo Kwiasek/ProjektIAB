@@ -51,6 +51,12 @@ ob_start(); // rozpocznij buforowanie treści
     <div id="facilities-container" class="flex flex-col gap-6"></div>
 </div>
 <script>
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     async function loadFacilities() {
         const params = new URLSearchParams(new FormData(document.getElementById('filter-form')));
         const response = await fetch(`/api/facilities?${params.toString()}`);
@@ -70,10 +76,10 @@ ob_start(); // rozpocznij buforowanie treści
                 card.className = 'bg-white shadow-md rounded-lg overflow-hidden flex p-3';
                 const thumb = facility.image_id ? `/image/facility?image_id=${facility.image_id}` : '/images/venue.jpg';
                 card.innerHTML = `
-                    <img src="${thumb}" alt="${facility.name}" class="max-h-50 aspect-16/9 object-cover rounded-lg">
+                    <img src="${thumb}" alt="${escapeHtml(facility.name)}" class="max-h-50 aspect-16/9 object-cover rounded-lg">
                     <div class="p-4 flex flex-col gap-2 justify-center">
-                        <h2 class="font-bold text-xl">${facility.name}</h2>
-                        <p class="text-gray-600">${facility.location}</p>
+                        <h2 class="font-bold text-xl">${escapeHtml(facility.name)}</h2>
+                        <p class="text-gray-600">${escapeHtml(facility.location)}</p>
                         <p class="mb-2 text-gray-600">⭐ <bold class="font-semibold">4.7</bold> (600 ocen)</p>
                         <a href="/facility?id=${facility.id}" class="self-end font-medium text-blue-500 bg-blue-100 px-3 py-2 rounded-lg">Zobacz szczegóły</a>
                     </div>

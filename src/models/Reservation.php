@@ -152,4 +152,52 @@ class Reservation {
         echo json_encode(['success' => true]);
     }
 
+    /**
+     * Opłaca rezerwację należącą do zalogowanego użytkownika
+     * Oczekuje JSONu: { "reservation_id": 123, ... }
+     */
+    public function payReservation(): void
+    {
+        global $pdo;
+
+        header('Content-Type: application/json');
+
+        if (!isset($_SESSION['user'])) {
+            echo json_encode(['error' => 'Musisz być zalogowany.']);
+            return;
+        }
+
+        $data = json_decode(file_get_contents("php://input"), true);
+
+        if (!is_array($data) || !isset($data['reservation_id'])) {
+            http_response_code(400);
+            echo json_encode(['error' => 'Nieprawidłowe dane wejściowe.']);
+            return;
+        }
+
+        $reservationId = $data['reservation_id'];
+
+        // Pobierz rezerwację i sprawdź właściciela
+        $stmt = $pdo->prepare("SELECT * FROM reservations WHERE id = ? AND user_id = ? AND status = 'confirmed'");
+        $stmt->execute([$reservationId, $_SESSION['user']['id']]);
+        $reservation = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$reservation) {
+            http_response_code(404);
+            echo json_encode(['error' => 'Rezerwacja nie znaleziona lub nie można jej opłacić.']);
+            return;
+        }
+
+        // Tutaj można dodać symulację płatności, ale dla uproszczenia zakładamy sukces
+
+        $update = $pdo->prepare("UPDATE reservations SET status = 'paid' WHERE id = ?");
+        if (!$update->execute([$reservationId])) {
+            http_response_code(500);
+            echo json_encode(['error' => 'Błąd serwera podczas płatności.']);
+            return;
+        }
+
+        echo json_encode(['success' => true]);
+    }
+
 }

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS reservations (
                                             date DATE NOT NULL,
                                             start_time TIME NOT NULL,
                                             end_time TIME NOT NULL,
-                                            status ENUM('pending', 'confirmed', 'cancelled') NOT NULL DEFAULT 'pending',
+                                            status ENUM('pending', 'confirmed', 'cancelled', 'paid') NOT NULL DEFAULT 'pending',
                                             total_price DECIMAL(8,2) NOT NULL,
                                             persons INT NOT NULL,
                                             max_persons INT,

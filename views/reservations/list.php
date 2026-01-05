@@ -33,12 +33,21 @@ ob_start();
                             <div>
                                 <div class="text-lg font-medium"><?= htmlspecialchars($res['facility_name'] ?? 'Obiekt') ?></div>
                                 <div class="text-sm text-gray-600"><?= htmlspecialchars($res['date']) ?> — <?= htmlspecialchars($startLabel) ?> do <?= htmlspecialchars($endLabel) ?></div>
-                                <div class="text-sm">Status: <strong><?= $res['status'] === 'pending' ? 'Oczekuje na potwierdzenie' : 'Potwierdzona' ?></strong></div>
+                                <div class="text-sm">Status: <strong><?php
+                                    if ($res['status'] === 'pending') echo 'Oczekuje na potwierdzenie';
+                                    elseif ($res['status'] === 'confirmed') echo 'Potwierdzona';
+                                    elseif ($res['status'] === 'paid') echo 'Opłacona';
+                                    elseif ($res['status'] === 'cancelled') echo 'Anulowana';
+                                    else echo htmlspecialchars($res['status']);
+                                ?></strong></div>
                             </div>
                         </div>
                         <div class="flex gap-4 items-center" onclick="event.stopPropagation()">
                             <?php if ($totalPrice !== null): ?>
                                 <div class="text-right text-sm text-gray-700">Cena: <strong><?= $totalPrice ?> zł</strong></div>
+                            <?php endif; ?>
+                            <?php if ($res['status'] === 'confirmed'): ?>
+                                <button data-id="<?= $res['id'] ?>" class="pay-btn px-3 py-2 bg-green-100 text-green-600 rounded">Opłać</button>
                             <?php endif; ?>
                             <?php if ($cancellable): ?>
                                 <button data-id="<?= $res['id'] ?>" class="cancel-btn px-3 py-2 bg-red-100 text-red-600 rounded">Anuluj</button>
@@ -255,6 +264,14 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 alert('Błąd sieci podczas anulowania.');
             }
+        });
+    });
+
+    // Pay button logic
+    document.querySelectorAll('.pay-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-id');
+            window.location.href = `/pay-reservation?id=${id}`;
         });
     });
 });

@@ -71,11 +71,25 @@ function routeRequest($uri) {
             $controller->myReservations();
             break;
 
+        case '/pay-reservation':
+            require_once __DIR__ . "/../src/controllers/ReservationController.php";
+            $controller = new ReservationController();
+            $controller->payReservation();
+            break;
+
         case '/api/reservations/cancel':
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 require_once __DIR__ . "/../src/models/Reservation.php";
                 $reservation = new Reservation();
                 $reservation->cancelReservation();
+            }
+            break;
+
+        case '/api/reservations/pay':
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                require_once __DIR__ . "/../src/models/Reservation.php";
+                $reservation = new Reservation();
+                $reservation->payReservation();
             }
             break;
 
