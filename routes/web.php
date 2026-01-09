@@ -27,6 +27,22 @@ function routeRequest($uri) {
             $controller->getAllFiltered();
             break;
 
+        case '/api/facilities/like':
+            header('Content-type: application/json');
+            $facilityId = $_POST['facility_id'] ?? null;
+            require_once __DIR__ . "/../src/controllers/FacilityController.php";
+            $controller = new FacilityController();
+            $controller->toggleLike($facilityId);
+            break;
+
+        case '/api/facilities/is-liked':
+            header('Content-type: application/json');
+            $facilityId = $_GET['facility_id'] ?? null;
+            require_once __DIR__ . "/../src/controllers/FacilityController.php";
+            $controller = new FacilityController();
+            $controller->isLiked($facilityId);
+            break;
+
         case '/api/facility/availability':
             header('Content-type: application/json');
             $id = $_GET['id'];

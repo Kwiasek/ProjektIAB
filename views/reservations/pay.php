@@ -52,7 +52,7 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
     // Clear previous errors
-    document.querySelectorAll('.text-red-500').forEach(el => el.textContent = '');
+    document.querySelectorAll('[id$="_error"]').forEach(el => el.textContent = '');
 
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);

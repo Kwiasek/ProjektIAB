@@ -55,6 +55,50 @@ $data = $facility ?? [];
         <input type="number" name="price" id="price" value="<?= htmlspecialchars($data['price_per_hour'] ?? '') ?>" class="w-full py-3 px-4 rounded-lg bg-gray-200 text-gray-800 font-medium" min="0" step="0.5" />
     </div>
 
+    <hr class="my-6 border-gray-300">
+
+    <h2 class="font-bold text-2xl mb-4">Godziny otwarcia</h2>
+    <p class="text-gray-500 mb-3">Dla każdego dnia określ godziny otwarcia i zamknięcia. Zaznacz, jeśli obiekt jest otwarty danego dnia.</p>
+
+    <div class="space-y-3">
+        <?php
+        $days = [
+            'monday' => 'Poniedziałek',
+            'tuesday' => 'Wtorek',
+            'wednesday' => 'Środa',
+            'thursday' => 'Czwartek',
+            'friday' => 'Piątek',
+            'saturday' => 'Sobota',
+            'sunday' => 'Niedziela'
+        ];
+        // Prepare schedule array
+        $scheduleArray = [];
+        if (isset($schedule)) {
+            foreach ($schedule as $s) {
+                $scheduleArray[$s['day_of_week']] = $s;
+            }
+        }
+        foreach ($days as $key => $label):
+            $current = $scheduleArray[$key] ?? ['open_time' => '08:00', 'close_time' => '22:00', 'is_open' => 1];
+        ?>
+            <div class="grid grid-cols-4 items-center gap-3 bg-gray-100 rounded-lg mb-4 px-3">
+                <div class="font-medium"><?= $label ?></div>
+                <div>
+                    <label class="text-sm text-gray-600 block">Od</label>
+                    <input type="time" name="availability[<?= $key ?>][open]" class="py-2 px-3 rounded bg-white border border-gray-300 w-full" value="<?= htmlspecialchars(substr($current['open_time'], 0, 5)) ?>">
+                </div>
+                <div>
+                    <label class="text-sm text-gray-600 block">Do</label>
+                    <input type="time" name="availability[<?= $key ?>][close]" class="py-2 px-3 rounded bg-white border border-gray-300 w-full" value="<?= htmlspecialchars(substr($current['close_time'], 0, 5)) ?>">
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" name="availability[<?= $key ?>][is_open]" id="open_<?= $key ?>" value="1" <?= $current['is_open'] ? 'checked' : '' ?>>
+                    <label for="open_<?= $key ?>" class="text-sm text-gray-600">Otwarte</label>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+
     <div class="flex justify-end gap-4">
         <a href="/facility?id=<?= htmlspecialchars($data['id']) ?>" class="px-3 py-2 bg-gray-200 text-gray-600 font-medium rounded-lg text-lg">Anuluj</a>
         <button type="submit" class="font-medium px-3 py-2 bg-blue-500 text-white rounded-lg cursor-pointer">Zapisz</button>

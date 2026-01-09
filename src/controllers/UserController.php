@@ -41,6 +41,17 @@ class UserController {
             'role' => $user['role']
         ];
 
+        // Transfer liked facilities from session to database
+        if (isset($_SESSION['liked_facilities']) && is_array($_SESSION['liked_facilities'])) {
+            require_once __DIR__ . "/../models/Facility.php";
+            $facilityModel = new Facility();
+            foreach ($_SESSION['liked_facilities'] as $facilityId) {
+                $facilityModel->likeFacility($user['id'], $facilityId);
+            }
+            unset($_SESSION['liked_facilities']);
+            session_write_close();
+        }
+
         header('location: /');
         exit;
     }

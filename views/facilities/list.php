@@ -42,6 +42,11 @@ ob_start(); // rozpocznij buforowanie treści
                    class="mt-1 block w-48 px-3 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500">
         </div>
 
+        <div class="self-end flex items-center gap-2">
+            <input type="checkbox" id="liked_only" name="liked_only" value="1" <?= isset($_GET['liked_only']) ? 'checked' : '' ?>>
+            <label for="liked_only" class="text-sm font-medium text-gray-700">Tylko polubione</label>
+        </div>
+
         <div class="self-end">
             <button type="submit" class="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg cursor-pointer">Szukaj</button>
         </div>
@@ -75,12 +80,14 @@ ob_start(); // rozpocznij buforowanie treści
                 const card = document.createElement('div');
                 card.className = 'bg-white shadow-md rounded-lg overflow-hidden flex p-3';
                 const thumb = facility.image_id ? `/image/facility?image_id=${facility.image_id}` : '/images/venue.jpg';
+                const avgRating = facility.avg_rating ? parseFloat(facility.avg_rating).toFixed(1) : 'Brak';
+                const reviewCount = facility.review_count || 0;
                 card.innerHTML = `
                     <img src="${thumb}" alt="${escapeHtml(facility.name)}" class="max-h-50 aspect-16/9 object-cover rounded-lg">
                     <div class="p-4 flex flex-col gap-2 justify-center">
                         <h2 class="font-bold text-xl">${escapeHtml(facility.name)}</h2>
                         <p class="text-gray-600">${escapeHtml(facility.location)}</p>
-                        <p class="mb-2 text-gray-600">⭐ <bold class="font-semibold">4.7</bold> (600 ocen)</p>
+                        <p class="mb-2 text-gray-600">⭐ <bold class="font-semibold">${avgRating}</bold> (${reviewCount} ocen)</p>
                         <a href="/facility?id=${facility.id}" class="self-end font-medium text-blue-500 bg-blue-100 px-3 py-2 rounded-lg">Zobacz szczegóły</a>
                     </div>
                 `;

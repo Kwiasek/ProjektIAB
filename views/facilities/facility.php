@@ -9,7 +9,7 @@ ob_start();
 ?>
 
 <main class="max-w-6xl mx-auto flex gap-6">
-    <div class="rounded-lg shadow-lg max-w-3/5 h-max aspect-16/9 bg-gray-100 flex items-center justify-center overflow-hidden relative">
+    <div class="rounded-lg shadow-lg max-w-3/5 aspect-16/9 bg-gray-100 flex items-center justify-center overflow-hidden relative" style="min-height: 250px;">
         <?php $imageIds = $data['image_ids'] ?? []; ?>
         <?php if (!empty($imageIds) && is_array($imageIds)): ?>
             <button id="prevImg" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/60 rounded-full px-3 py-2">‹</button>
@@ -51,6 +51,8 @@ ob_start();
             <?php endforeach; ?>
         </div>
 
+        <button id="likeBtn" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg">Polub</button>
+
         <?php if (isset($_SESSION['user'])): ?>
             <!-- Reservation section - visible only for logged-in users -->
             <h2 class="font-bold mt-6">Dostępność</h2>
@@ -72,6 +74,7 @@ ob_start();
 </main>
 <script>
     // Slider init (always available)
+    const facilityId = <?= $id ?>;
     function slider(){
         const imageIds = <?= json_encode($data['image_ids'] ?? []) ?>;
         if (!imageIds || imageIds.length === 0) return;
@@ -119,93 +122,115 @@ ob_start();
     const today = new Date().toISOString().split('T')[0];
 
 
-function renderAvailableHours(hours) {
+function renderAvailableHours(data) {
     hoursContainer.innerHTML = ''
     const selectedDate = dateInput.value || today;
     const now = new Date();
     const currentHour = now.getHours();
     const isToday = selectedDate === today;
 
-        const filteredHours = hours.filter(hour => {
+    const available = data.available || [];
+    const open = data.open;
+    const close = data.close;
+
+    if (!open || !close) {
+        hoursContainer.innerHTML = '<p>Obiekt zamknięty w tym dniu.</p>'
+        reserveBtn.disabled = true
+        return
+    }
+
+    const allHours = [];
+    for (let h = open; h < close; h++) {
+        allHours.push(h);
+    }
+
+    const filteredHours = allHours.filter(hour => {
         // Jeśli wybrano dzisiaj — ukryj godziny, które już minęły (hour < currentHour)
         if (isToday) return hour >= currentHour;
         return true;
     });
 
     if (filteredHours.length === 0) {
-        hoursContainer.innerHTML = '<p>Brak wolnych terminów w tym dniu.</p>'
+        hoursContainer.innerHTML = '<p>Brak terminów w tym dniu.</p>'
         reserveBtn.disabled = true
         return
     }
 
-        filteredHours.forEach(hour => {
-            const btn = document.createElement('button')
-            btn.className = 'hour-btn px-3 py-2 bg-blue-300 text-white rounded hover:bg-blue-500'
-            btn.textContent = `${hour}:00 - ${hour + 1}:00`
+    filteredHours.forEach(hour => {
+        const isAvailable = available.includes(hour);
+        const btn = document.createElement('button')
+        btn.className = isAvailable ? 'hour-btn px-3 py-2 bg-blue-300 text-white rounded hover:bg-blue-500' : 'hour-btn px-3 py-2 bg-gray-300 text-gray-500 rounded cursor-not-allowed'
+        btn.textContent = `${hour}:00 - ${hour + 1}:00`
+        if (!isAvailable) {
+            btn.disabled = true;
+        }
 
-            btn.addEventListener('click', () => {
-                // If no start selected => set start
-                if (selectedStart === null) {
-                    selectedStart = hour;
+        btn.addEventListener('click', () => {
+            if (!isAvailable) return; // nie pozwalaj klikać na zajęte
+
+            // If no start selected => set start
+            if (selectedStart === null) {
+                selectedStart = hour;
+                selectedEnd = null;
+            } else if (selectedStart !== null && selectedEnd === null) {
+                // set end
+                if (hour === selectedStart) {
+                    // deselect
+                    selectedStart = null;
                     selectedEnd = null;
-                } else if (selectedStart !== null && selectedEnd === null) {
-                    // set end
-                    if (hour === selectedStart) {
-                        // deselect
-                        selectedStart = null;
-                        selectedEnd = null;
-                    } else {
-                        selectedEnd = hour;
-                        if (selectedEnd < selectedStart) {
-                            const t = selectedStart; selectedStart = selectedEnd; selectedEnd = t;
-                        }
-                    }
                 } else {
-                    // both set => start new selection
-                    selectedStart = hour;
-                    selectedEnd = null;
+                    selectedEnd = hour;
+                    if (selectedEnd < selectedStart) {
+                        const t = selectedStart; selectedStart = selectedEnd; selectedEnd = t;
+                    }
                 }
+            } else {
+                // both set => start new selection
+                selectedStart = hour;
+                selectedEnd = null;
+            }
 
-                // update UI: highlight range
-                document.querySelectorAll('.hour-btn').forEach(b => {
-                    b.classList.remove('bg-blue-500');
-                    b.classList.add('bg-blue-300');
+            // update UI: highlight range
+            document.querySelectorAll('.hour-btn').forEach(b => {
+                if (b.disabled) return; // nie zmieniaj zajętych
+                b.classList.remove('bg-blue-500');
+                b.classList.add('bg-blue-300');
+            });
+            if (selectedStart !== null && selectedEnd === null) {
+                Array.from(hoursContainer.children).forEach(ch => {
+                    if (ch.textContent.startsWith(`${selectedStart}:00`) && !ch.disabled) {
+                        ch.classList.remove('bg-blue-300'); ch.classList.add('bg-blue-500');
+                    }
                 });
-                if (selectedStart !== null && selectedEnd === null) {
+            } else if (selectedStart !== null && selectedEnd !== null) {
+                for (let h = selectedStart; h <= selectedEnd; h++) {
                     Array.from(hoursContainer.children).forEach(ch => {
-                        if (ch.textContent.startsWith(`${selectedStart}:00`)) {
+                        if (ch.textContent.startsWith(`${h}:00`) && !ch.disabled) {
                             ch.classList.remove('bg-blue-300'); ch.classList.add('bg-blue-500');
                         }
                     });
-                } else if (selectedStart !== null && selectedEnd !== null) {
-                    for (let h = selectedStart; h <= selectedEnd; h++) {
-                        Array.from(hoursContainer.children).forEach(ch => {
-                            if (ch.textContent.startsWith(`${h}:00`)) {
-                                ch.classList.remove('bg-blue-300'); ch.classList.add('bg-blue-500');
-                            }
-                        });
-                    }
                 }
+            }
 
-                // enable/disable reserve button and update summary
-                const summaryEl = document.getElementById('selectionSummary');
-                if (selectedStart !== null && selectedEnd !== null) {
-                    const duration = selectedEnd - selectedStart + 1;
-                    const total = (pricePerHour * duration).toFixed(2);
-                    summaryEl.textContent = `Wybrano: ${selectedStart}:00 - ${selectedEnd + 1}:00 — Cena: ${total} zł`;
-                    reserveBtn.disabled = false;
-                } else if (selectedStart !== null && selectedEnd === null) {
-                    const duration = 1;
-                    const total = (pricePerHour * duration).toFixed(2);
-                    summaryEl.textContent = `Wybrano: ${selectedStart}:00 - ${selectedStart + 1}:00 — Cena: ${total} zł`;
-                    reserveBtn.disabled = false;
-                } else {
-                    summaryEl.textContent = '';
-                    reserveBtn.disabled = true;
-                }
-            })
+            // enable/disable reserve button and update summary
+            const summaryEl = document.getElementById('selectionSummary');
+            if (selectedStart !== null && selectedEnd !== null) {
+                const duration = selectedEnd - selectedStart + 1;
+                const total = (pricePerHour * duration).toFixed(2);
+                summaryEl.textContent = `Wybrano: ${selectedStart}:00 - ${selectedEnd + 1}:00 — Cena: ${total} zł`;
+                reserveBtn.disabled = false;
+            } else if (selectedStart !== null && selectedEnd === null) {
+                const duration = 1;
+                const total = (pricePerHour * duration).toFixed(2);
+                summaryEl.textContent = `Wybrano: ${selectedStart}:00 - ${selectedStart + 1}:00 — Cena: ${total} zł`;
+                reserveBtn.disabled = false;
+            } else {
+                summaryEl.textContent = '';
+                reserveBtn.disabled = true;
+            }
+        })
 
-            hoursContainer.appendChild(btn)
+        hoursContainer.appendChild(btn)
     })
 }
 
@@ -214,12 +239,12 @@ async function fetchAvailability(date) {
     try {
         const res = await fetch(`/api/facility/availability?id=${facilityId}&date=${date}`)
         const data = await res.json()
-        if (!data.data || !data.data.available || data.data.available.length === 0) {
-            hoursContainer.innerHTML = '<p>Brak wolnych terminów w tym dniu.</p>'
+        if (!data.data || (!data.data.available && !data.data.open)) {
+            hoursContainer.innerHTML = '<p>Brak terminów w tym dniu.</p>'
             reserveBtn.disabled = true
             return
         }
-        renderAvailableHours(data.data.available)
+        renderAvailableHours(data.data)
     } catch (err) {
         hoursContainer.innerHTML = '<p>Błąd podczas pobierania terminów.</p>'
     }
@@ -777,6 +802,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load reviews on page load
     loadReviews();
 });
+
+// Like button
+const likeBtn = document.getElementById('likeBtn');
+async function updateLikeButton() {
+    const res = await fetch(`/api/facilities/is-liked?facility_id=${facilityId}`);
+    const data = await res.json();
+    if (data.liked) {
+        likeBtn.textContent = 'Usuń polubienie';
+        likeBtn.classList.remove('bg-red-500');
+        likeBtn.classList.add('bg-gray-500');
+    } else {
+        likeBtn.textContent = 'Polub';
+        likeBtn.classList.remove('bg-gray-500');
+        likeBtn.classList.add('bg-red-500');
+    }
+}
+likeBtn.addEventListener('click', async () => {
+    const res = await fetch('/api/facilities/like', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `facility_id=${facilityId}`
+    });
+    const data = await res.json();
+    if (data.success) {
+        updateLikeButton();
+    }
+});
+updateLikeButton(); // initial load
 </script>
 
 <?php

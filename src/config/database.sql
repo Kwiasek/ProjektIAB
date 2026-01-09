@@ -111,3 +111,13 @@ CREATE TABLE IF NOT EXISTS facility_images (
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (facility_id) REFERENCES facilities(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS facility_likes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    facility_id INT NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (facility_id) REFERENCES facilities(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_like (user_id, facility_id)
+);

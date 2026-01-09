@@ -16,7 +16,6 @@
             <?php if (isset($_SESSION['user']) && in_array($_SESSION['user']['role'] ?? '', ['owner','admin'])): ?>
                 <a href="/admin" class="hover:text-gray-800 flex items-center">Panel administracyjny <span id="admin-badge" class="ml-2 h-3 w-3 rounded-full bg-red-500 hidden" aria-hidden="true"></span></a>
             <?php endif; ?>
-            <a href="/" class="hover:text-gray-800">Dołącz do rezerwacji</a>
             <?php if (isset($_SESSION['user'])) : ?>
                 <a href="/logout" class="px-4 py-2 bg-red-200 text-red-500 rounded-lg">Wyloguj się</a>
             <?php else : ?>

@@ -47,7 +47,8 @@ class FacilityController {
             'location' => $_GET['location'] ?? null,
             'date' => $_GET['date'] ?? null,
             'sort' => $_GET['sort'] ?? null,
-            'available_only' => isset($_GET['available_only'])
+            'available_only' => isset($_GET['available_only']),
+            'liked_only' => isset($_GET['liked_only'])
         ];
 
         try {
@@ -136,6 +137,7 @@ class FacilityController {
             header('Location: /');
             exit;
         }
+        $schedule = $this->facility->getFacilitySchedule($id);
         require_once __DIR__ . "/../../views/facilities/edit.php";
     }
 
@@ -185,5 +187,59 @@ class FacilityController {
         $_SESSION['error'] = $err;
         header('Location: /facilities/edit?id=' . $id);
         exit;
+    }
+
+    public function toggleLike($facilityId): void
+    {
+        if (!$facilityId || !is_numeric($facilityId)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid facility ID']);
+            return;
+        }
+
+        $userId = $_SESSION['user']['id'] ?? null;
+
+        if ($userId) {
+            // Logged in: toggle in database
+            $isLiked = $this->facility->isLiked($userId, $facilityId);
+            if ($isLiked) {
+                $this->facility->unlikeFacility($userId, $facilityId);
+                echo json_encode(['success' => true, 'liked' => false]);
+            } else {
+                $this->facility->likeFacility($userId, $facilityId);
+                echo json_encode(['success' => true, 'liked' => true]);
+            }
+        } else {
+            // Not logged in: toggle in session
+            if (!isset($_SESSION['liked_facilities'])) {
+                $_SESSION['liked_facilities'] = [];
+            }
+            $key = array_search($facilityId, $_SESSION['liked_facilities']);
+            if ($key !== false) {
+                unset($_SESSION['liked_facilities'][$key]);
+                $_SESSION['liked_facilities'] = array_values($_SESSION['liked_facilities']); // reindex
+                echo json_encode(['success' => true, 'liked' => false]);
+            } else {
+                $_SESSION['liked_facilities'][] = $facilityId;
+                echo json_encode(['success' => true, 'liked' => true]);
+            }
+        }
+    }
+
+    public function isLiked($facilityId): void
+    {
+        if (!$facilityId || !is_numeric($facilityId)) {
+            echo json_encode(['liked' => false]);
+            return;
+        }
+
+        $userId = $_SESSION['user']['id'] ?? null;
+
+        if ($userId) {
+            $liked = $this->facility->isLiked($userId, $facilityId);
+        } else {
+            $liked = in_array($facilityId, $_SESSION['liked_facilities'] ?? []);
+        }
+
+        echo json_encode(['liked' => $liked]);
     }
 }

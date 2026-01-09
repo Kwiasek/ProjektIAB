@@ -237,10 +237,14 @@ class Facility {
 
     public function getFiltered($filters) {
         global $pdo;
-        // Include first image id (thumbnail) as image_id
+        // Include first image id (thumbnail) as image_id, average rating and review count
         $sql = "SELECT f.*, (
             SELECT id FROM facility_images fi WHERE fi.facility_id = f.id ORDER BY id ASC LIMIT 1
-        ) AS image_id FROM facilities f";
+        ) AS image_id,
+        AVG(r.rating) AS avg_rating,
+        COUNT(r.id) AS review_count
+        FROM facilities f
+        LEFT JOIN facility_reviews r ON r.facility_id = f.id";
         $params = [];
         $conditions = [];
 
@@ -260,7 +264,7 @@ class Facility {
         if (!empty($filters['date'])) {
             $sql .= "
                 JOIN facility_availability fa ON fa.facility_id = f.id
-                WHERE fa.day_of_week = DAYNAME(:date)
+                WHERE fa.day_of_week = DAYNAME(:date) AND fa.is_open = 1
             ";
             $params[':date'] = $filters['date'];
         }
@@ -269,10 +273,27 @@ class Facility {
             $sql .=  (str_contains($sql, 'WHERE') ? ' AND ' : ' WHERE ') . implode(' AND ', $conditions);
         }
 
+        $sql .= " GROUP BY f.id";
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $facilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Filtr po polubionych
+        if (!empty($filters['liked_only'])) {
+            $userId = $_SESSION['user']['id'] ?? null;
+            if ($userId) {
+                $likedIds = $this->getLikedFacilities($userId);
+            } else {
+                $likedIds = $_SESSION['liked_facilities'] ?? [];
+            }
+            $facilities = array_filter($facilities, function($f) use ($likedIds) {
+                return in_array($f['id'], $likedIds);
+            });
+        }
+
+        return $facilities;
     }
 
     /** Serve raw image blob by image id */
@@ -489,5 +510,31 @@ class Facility {
         ");
         $stmt->execute([$facilityId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function likeFacility($userId, $facilityId) {
+        global $pdo;
+        $stmt = $pdo->prepare("INSERT IGNORE INTO facility_likes (user_id, facility_id) VALUES (?, ?)");
+        return $stmt->execute([$userId, $facilityId]);
+    }
+
+    public function unlikeFacility($userId, $facilityId) {
+        global $pdo;
+        $stmt = $pdo->prepare("DELETE FROM facility_likes WHERE user_id = ? AND facility_id = ?");
+        return $stmt->execute([$userId, $facilityId]);
+    }
+
+    public function isLiked($userId, $facilityId) {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT 1 FROM facility_likes WHERE user_id = ? AND facility_id = ?");
+        $stmt->execute([$userId, $facilityId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+    }
+
+    public function getLikedFacilities($userId) {
+        global $pdo;
+        $stmt = $pdo->prepare("SELECT facility_id FROM facility_likes WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }
