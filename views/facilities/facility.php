@@ -9,11 +9,11 @@ ob_start();
 ?>
 
 <main class="max-w-6xl mx-auto flex gap-6">
-    <div class="rounded-lg shadow-lg max-w-3/5 aspect-16/9 bg-gray-100 flex items-center justify-center overflow-hidden relative" style="min-height: 250px;">
+    <div class="flex overflow-hidden relative mb-auto">
         <?php $imageIds = $data['image_ids'] ?? []; ?>
         <?php if (!empty($imageIds) && is_array($imageIds)): ?>
             <button id="prevImg" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/60 rounded-full px-3 py-2">‹</button>
-            <img id="facilityImage" src="/image/facility?image_id=<?= $imageIds[0] ?>&amp;size=medium" alt="<?= htmlspecialchars($data['name']) ?>" class="w-full h-full object-cover object-center">
+            <img id="facilityImage" src="/image/facility?image_id=<?= $imageIds[0] ?>&amp;size=medium" alt="<?= htmlspecialchars($data['name']) ?>" class="w-full object-contain">
             <button id="nextImg" class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/60 rounded-full px-3 py-2">›</button>
             <div id="imageDots" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2"></div>
         <?php else: ?>
@@ -21,7 +21,10 @@ ob_start();
         <?php endif; ?>
     </div>
     <div class="flex flex-col gap-3">
-        <h1 class="font-bold text-2xl"><?= htmlspecialchars($data['name']) ?></h1>
+        <div class="flex items-center gap-2">
+            <h1 class="font-bold text-2xl"><?= htmlspecialchars($data['name']) ?></h1>
+            <button id="likeBtn" class="text-3xl cursor-pointer transition-transform hover:scale-125" title="Polub ten obiekt">❤️</button>
+        </div>
         <p class="mb-2"><?= htmlspecialchars($data['description'])?></p>
         
         <!-- Schedule -->
@@ -50,8 +53,6 @@ ob_start();
                 </div>
             <?php endforeach; ?>
         </div>
-
-        <button id="likeBtn" class="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg">Polub</button>
 
         <?php if (isset($_SESSION['user'])): ?>
             <!-- Reservation section - visible only for logged-in users -->
@@ -117,7 +118,6 @@ ob_start();
     const reserveBtn = document.getElementById('reserveBtn');
     let selectedStart = null;
     let selectedEnd = null;
-    const facilityId = <?= $id ?>;
     const pricePerHour = <?= floatval($data['price_per_hour'] ?? 0) ?>;
     const today = new Date().toISOString().split('T')[0];
 
@@ -809,13 +809,11 @@ async function updateLikeButton() {
     const res = await fetch(`/api/facilities/is-liked?facility_id=${facilityId}`);
     const data = await res.json();
     if (data.liked) {
-        likeBtn.textContent = 'Usuń polubienie';
-        likeBtn.classList.remove('bg-red-500');
-        likeBtn.classList.add('bg-gray-500');
+        likeBtn.textContent = '💔';
+        likeBtn.title = 'Usuń polubienie';
     } else {
-        likeBtn.textContent = 'Polub';
-        likeBtn.classList.remove('bg-gray-500');
-        likeBtn.classList.add('bg-red-500');
+        likeBtn.textContent = '❤️';
+        likeBtn.title = 'Polub ten obiekt';
     }
 }
 likeBtn.addEventListener('click', async () => {
