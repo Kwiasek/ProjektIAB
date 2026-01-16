@@ -262,15 +262,13 @@ class Facility {
 
         // Filtr po dacie
         if (!empty($filters['date'])) {
-            $sql .= "
-                JOIN facility_availability fa ON fa.facility_id = f.id
-                WHERE fa.day_of_week = DAYNAME(:date) AND fa.is_open = 1
-            ";
+            $sql .= " JOIN facility_availability fa ON fa.facility_id = f.id";
+            $conditions[] = "fa.day_of_week = DAYNAME(:date) AND fa.is_open = 1";
             $params[':date'] = $filters['date'];
         }
 
         if (!empty($conditions)) {
-            $sql .=  (str_contains($sql, 'WHERE') ? ' AND ' : ' WHERE ') . implode(' AND ', $conditions);
+            $sql .= " WHERE " . implode(' AND ', $conditions);
         }
 
         $sql .= " GROUP BY f.id";

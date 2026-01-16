@@ -66,7 +66,7 @@ ob_start(); // rozpocznij buforowanie treści
         const params = new URLSearchParams(new FormData(document.getElementById('filter-form')));
         const response = await fetch(`/api/facilities?${params.toString()}`);
         const data = await response.json();
-
+        
         const container = document.getElementById('facilities-container');
         container.innerHTML = '';
 

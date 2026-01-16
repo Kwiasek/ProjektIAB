@@ -9,7 +9,7 @@ ob_start();
 ?>
 
 <main class="max-w-6xl mx-auto flex gap-6">
-    <div class="flex overflow-hidden relative mb-auto">
+    <div class="flex overflow-hidden relative mb-auto w-full">
         <?php $imageIds = $data['image_ids'] ?? []; ?>
         <?php if (!empty($imageIds) && is_array($imageIds)): ?>
             <button id="prevImg" class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/60 rounded-full px-3 py-2">‹</button>
